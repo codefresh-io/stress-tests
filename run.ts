@@ -59,7 +59,10 @@ const end = Date.now();
 console.info(`Launched ${count} builds of "${pipeline}" in ${end - start}ms`);
 
 for (const result of results) {
-  if ((result.status === 'fulfilled' && result.value.code !== 0) || result.status === 'rejected') {
-    console.warn(JSON.stringify(result));
+  if ((result.status === 'fulfilled' && !result.value.success) || result.status === 'rejected') {
+    console.error(colors.brightRed(`❌ Failed to start build`));
+    result.status === 'fulfilled'
+      ? console.error(colors.brightRed(`stderr:\n${new TextDecoder().decode(result.value.stderr)}`))
+      : console.error(colors.brightRed(`reason:\n${result.reason}`));
   }
 }
