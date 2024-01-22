@@ -34,8 +34,6 @@ if (shouldContinue !== 'yes') {
   Deno.exit(0);
 }
 
-console.info(`🚀 Starting ${count} executions of "${pipeline}"`);
-const start = Date.now();
 const controller = new AbortController();
 Deno.addSignalListener('SIGINT', () => {
   console.info(colors.yellow('\n🛑 Stopping...'));
@@ -43,26 +41,70 @@ Deno.addSignalListener('SIGINT', () => {
   Deno.exit(0);
 });
 
-const executions = new Array(count).fill(0).map(() => {
-  return new Deno.Command(`codefresh`, {
-    args: [
-      'run',
-      pipeline,
-      '--detach',
-    ],
-    signal: controller.signal,
-  }).output();
-});
-
-const results = await Promise.allSettled(executions);
-const end = Date.now();
-console.info(`Launched ${count} builds of "${pipeline}" in ${end - start}ms`);
-
-for (const result of results) {
-  if ((result.status === 'fulfilled' && !result.value.success) || result.status === 'rejected') {
-    console.error(colors.brightRed(`❌ Failed to start build`));
-    result.status === 'fulfilled'
-      ? console.error(colors.brightRed(`stderr:\n${new TextDecoder().decode(result.value.stderr)}`))
-      : console.error(colors.brightRed(`reason:\n${result.reason}`));
+const runPipeline = async (pipeline: string, runCount: number): Promise<{ success: number, failure: number }> => {
+  console.info(`🚀 Starting ${runCount} executions of "${pipeline}"`);
+  const executions = new Array(runCount).fill(0).map(() => {
+    return new Deno.Command(`codefresh`, {
+      args: [
+        'run',
+        pipeline,
+        '--detach',
+      ],
+      signal: controller.signal,
+    }).output();
+  });
+  
+  const results = await Promise.allSettled(executions);
+  let success = 0;
+  let failure = 0;
+  for (const result of results) {
+    if ((result.status === 'fulfilled' && !result.value.success) || result.status === 'rejected') {
+      failure += 1;
+      console.error(colors.brightRed(`❌ Failed to start build`));
+      result.status === 'fulfilled'
+        ? console.error(colors.brightRed(`stderr:\n${new TextDecoder().decode(result.value.stderr)}`))
+        : console.error(colors.brightRed(`reason:\n${result.reason}`));
+    } else {
+      success += 1;
+    }
   }
+  return { success, failure };
+};
+
+const runInBunches = async (pipeline: string, runCount: number, bunchLength = 100): Promise<{ success: number, failure: number }> => {
+  let success = 0;
+  let failure = 0;
+  while (runCount > 0) {
+    const results = await runPipeline(pipeline, Math.min(runCount, bunchLength));
+    runCount -= Math.min(runCount, bunchLength);
+    success += results.success;
+    failure += results.failure;
+  }
+  return { success, failure };
+}
+
+let success = 0;
+let failure = 0;
+const run = async (pipeline: string, runCount?: number, bunchLength?: number): Promise<void> => {
+  let count = runCount;
+  if (!count) {
+    const addCount = +(prompt(colors.yellow('\n⚠️  Type number to add more builds:'), '0') || '0');
+    if (Number.isNaN(addCount) || addCount === 0) return;
+    count = addCount;
+  }
+  const results = await runInBunches(pipeline, count, bunchLength);
+  success += results.success;
+  failure += results.failure;
+  
+  failure && console.info(colors.brightRed(`❌ Total: failed to start: ${failure}`));
+  console.info(colors.green(`✅ Total: successfully started: ${success}`));
+
+  return run(pipeline, undefined, bunchLength);
+}
+
+try {
+  await run(pipeline, count, 100);
+} catch (error) {
+  console.error(error);
+  Deno.exit(1);
 }
