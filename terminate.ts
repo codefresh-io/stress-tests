@@ -24,6 +24,8 @@ const terminateBuilds = async (pipeline: string) => {
       'running',
       '--status',
       'pending',
+      '--status',
+      'elected',
       '--limit',
       limit,
       '--output',
@@ -47,8 +49,11 @@ const terminateBuilds = async (pipeline: string) => {
     }).output();
   }));
 results.forEach((result, index) => {
-  if ((result.status === 'fulfilled' && result.value.code !== 0) || result.status === 'rejected') {
+  if ((result.status === 'fulfilled' && !result.value.success) || result.status === 'rejected') {
     console.error(colors.brightRed(`❌ Failed to terminate build ${running[index].id}`));
+    result.status === 'fulfilled'
+      ? console.error(colors.brightRed(`stderr:\n${new TextDecoder().decode(result.value.stderr)}`))
+      : console.error(colors.brightRed(`reason:\n${result.reason}`));
   } else {
     console.info(colors.green(`✅ Terminated build ${running[index].id}`));
   }
