@@ -1,0 +1,26 @@
+version: "1.0"
+
+stages:
+  - wait
+  - retrigger
+
+steps:
+  wait:
+    stage: wait
+    title: Wait
+    type: freestyle
+    image: quay.io/codefresh/cli:0.84.7 
+    shell: bash
+    fail_fast: false
+    commands:
+      - sleep "$(( ( RANDOM % 60 )  + 120 ))"
+
+  codefresh-run:
+    stage: retrigger
+    title: Run again
+    type: codefresh-run
+    arguments:
+      PIPELINE_ID: ${{CF_PIPELINE_NAME}}
+      DETACH: true
+      VARIABLE:
+        - key1=val1
