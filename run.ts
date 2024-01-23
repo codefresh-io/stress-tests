@@ -42,7 +42,7 @@ Deno.addSignalListener('SIGINT', () => {
 });
 
 const runPipeline = async (pipeline: string, runCount: number): Promise<{ success: number, failure: number }> => {
-  console.info(`🚀 Starting ${runCount} executions of "${pipeline}"`);
+  console.info(`🚀 [${new Date().toISOString()}] Starting ${runCount} executions of "${pipeline}"`);
   const executions = new Array(runCount).fill(0).map(() => {
     return new Deno.Command(`codefresh`, {
       args: [
@@ -60,7 +60,7 @@ const runPipeline = async (pipeline: string, runCount: number): Promise<{ succes
   for (const result of results) {
     if ((result.status === 'fulfilled' && !result.value.success) || result.status === 'rejected') {
       failure += 1;
-      console.error(colors.brightRed(`❌ Failed to start build`));
+      console.error(colors.brightRed(`❌ [${new Date().toISOString()}] Failed to start build:`));
       result.status === 'fulfilled'
         ? console.error(colors.brightRed(`stderr:\n${new TextDecoder().decode(result.value.stderr)}`))
         : console.error(colors.brightRed(`reason:\n${result.reason}`));
@@ -68,6 +68,7 @@ const runPipeline = async (pipeline: string, runCount: number): Promise<{ succes
       success += 1;
     }
   }
+  console.info(colors.green(`✅ [${new Date().toISOString()}] Successfully started ${success} executions of "${pipeline}"`));
   return { success, failure };
 };
 
@@ -96,8 +97,8 @@ const run = async (pipeline: string, runCount?: number, bunchLength?: number): P
   success += results.success;
   failure += results.failure;
   
-  failure && console.info(colors.brightRed(`❌ Total: failed to start: ${failure}`));
-  console.info(colors.green(`✅ Total: successfully started: ${success}`));
+  failure && console.info(colors.bgRed(`❌ Total, failed to start: ${failure}`));
+  console.info(colors.bgGreen(`✅ [${new Date().toISOString()}] Total, successfully started: ${success}`));
 
   return run(pipeline, undefined, bunchLength);
 }
