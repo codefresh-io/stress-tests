@@ -89,7 +89,7 @@ let failure = 0;
 const run = async (pipeline: string, runCount?: number, bunchLength?: number): Promise<void> => {
   let count = runCount;
   if (!count) {
-    const addCount = +(prompt(colors.yellow('\n⚠️  Type number to add more builds:'), '0') || '0');
+    const addCount = +(prompt(colors.yellow('\n➕  Type number to add more builds:'), '0') || '0');
     if (Number.isNaN(addCount) || addCount === 0) return;
     count = addCount;
   }
