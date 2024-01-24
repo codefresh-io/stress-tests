@@ -25,12 +25,25 @@ steps:
         }, delay);
         "
 
-  codefresh-run:
+  run:
     stage: retrigger
     title: Run again
-    type: codefresh-run
-    arguments:
-      PIPELINE_ID: ${{CF_PIPELINE_NAME}}
-      DETACH: true
-      VARIABLE:
-        - key1=val1
+    image: denoland/deno:alpine
+    commands:
+      - |-
+        deno eval --ext=js "
+        const resp = await fetch(
+          new URL(
+            encodeURIComponent('${{CF_PIPELINE_NAME}}'),
+            'https://g.codefresh.io/api/pipelines/run/',
+          ),
+          {
+            method: 'POST',
+            headers: { 'Authorization': '${{CF_API_KEY}}' }
+          },
+        );
+        console.log(await resp.text());
+        if (!resp.ok) {
+          Deno.exit(1);
+        }
+        "
