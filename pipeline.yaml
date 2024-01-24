@@ -9,11 +9,21 @@ steps:
     stage: wait
     title: Wait
     type: freestyle
-    image: quay.io/codefresh/cli:0.84.7 
-    shell: bash
+    image: denoland/deno:alpine
     fail_fast: false
     commands:
-      - sleep "$(( ( RANDOM % 60 )  + 120 ))"
+      - |-
+        deno eval --ext=js "
+        setInterval(() => {
+          console.log(Math.random().toString(2))
+        }, 100);
+
+        const delay = Math.floor((Math.random() + 2) * 60 * 1000); // 2–3 minutes
+        setTimeout(() => {
+          console.log('🔵\n\tThe Matrix is everywhere.\n\tIt is all around us.\n🔴')
+          Deno.exit(0);
+        }, delay);
+        "
 
   codefresh-run:
     stage: retrigger
