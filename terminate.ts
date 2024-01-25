@@ -3,10 +3,12 @@ import * as colors from 'https://deno.land/std@0.212.0/fmt/colors.ts';
 
 const flags = parseArgs(Deno.args, {
   string: ['pipeline', 'limit'],
-  default: { 'limit': '100' },
+  boolean: ['all'],
+  default: { 'limit': '100', 'all': false },
 });
 const pipeline = flags.pipeline;
 const limit = flags.limit;
+const all = flags.all;
 
 if (!pipeline) {
   console.error(colors.brightRed('❌ Missing required flag --pipeline'));
@@ -58,7 +60,7 @@ results.forEach((result, index) => {
     console.info(colors.green(`✅ Terminated build ${running[index].id}`));
   }
 })
-  await terminateBuilds(pipeline);
+  all && await terminateBuilds(pipeline);
 }
 
 await terminateBuilds(pipeline);

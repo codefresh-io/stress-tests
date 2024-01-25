@@ -6,10 +6,10 @@ Install Deno, if needed: https://docs.deno.com/runtime/manual/getting_started/in
 
 ## Run
 ```
-$ deno run --allow-run=codefresh ./run.ts --pipeline testing/stress-worker-single --count 1000
+$ deno run --allow-run=codefresh ./run.ts --pipeline testing/stress-worker-single --count [1]
 ```
 
 ## Terminate
 ```
-$ deno run --allow-run=codefresh ./terminate.ts --pipeline testing/stress-worker-single --limit 100
+$ deno run --allow-run=codefresh ./terminate.ts --pipeline testing/stress-worker-single --limit [100] --all [false]
 ```
