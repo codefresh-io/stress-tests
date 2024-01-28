@@ -2,11 +2,14 @@ import { parseArgs } from 'https://deno.land/std@0.212.0/cli/parse_args.ts';
 import * as colors from 'https://deno.land/std@0.212.0/fmt/colors.ts';
 
 const flags = parseArgs(Deno.args, {
-  string: ['pipeline', 'count'],
+  string: ['pipeline', 'count', 'runtime'],
   default: { count: '1' },
+  collect: ['runtime']
 });
 const pipeline = flags.pipeline;
 const count = +flags.count;
+const runtimes = flags.runtime;
+
 
 if (!pipeline) {
   console.error(colors.brightRed('❌ Missing required flag --pipeline'));
@@ -25,7 +28,8 @@ if (!currentContext.success) {
 console.info(colors.green('\n🟢 Setup:'));
 console.info(colors.green(`1️⃣  Context:\t${new TextDecoder().decode(currentContext.stdout).split('\n').at(1)}`));
 console.info(colors.green(`2️⃣  Pipeline:\t${pipeline}`));
-console.info(colors.green(`3️⃣  Concurrency:\t${count}`));
+console.info(colors.green(runtimes.length ? `3️⃣  Runtimes:\t${runtimes.join(', ')}` : `3️⃣  Runtime:\t[pipeline settings]`));
+console.info(colors.green(`4️⃣  Concurrency:\t${count}`));
 
 
 const shouldContinue = prompt(colors.yellow('\n⚠️  Do you want to continue? [yes/no]'), 'no');
@@ -41,14 +45,21 @@ Deno.addSignalListener('SIGINT', () => {
   Deno.exit(0);
 });
 
+const getRandomRuntime = (): string | undefined => {
+  const index = Math.floor(Math.random() * runtimes.length);
+  return runtimes.at(index);
+}
+
 const runPipeline = async (pipeline: string, runCount: number): Promise<{ success: number, failure: number }> => {
   console.info(`🚀 [${new Date().toISOString()}] Starting ${runCount} executions of "${pipeline}"`);
+  const runtime = getRandomRuntime();
   const executions = new Array(runCount).fill(0).map(() => {
     return new Deno.Command(`codefresh`, {
       args: [
         'run',
         pipeline,
         '--detach',
+        ...(runtime ? ['--runtime-name', runtime, '--variable', `RUNTIME=${runtime}`] : [])
       ],
       signal: controller.signal,
     }).output();

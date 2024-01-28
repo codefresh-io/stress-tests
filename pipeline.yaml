@@ -9,7 +9,7 @@ steps:
     stage: wait
     title: Wait
     type: freestyle
-    image: denoland/deno:alpine
+    image: quay.io/codefresh/sandbox/deno:alpine
     fail_fast: false
     commands:
       - |-
@@ -28,22 +28,33 @@ steps:
   run:
     stage: retrigger
     title: Run again
-    image: denoland/deno:alpine
+    image: quay.io/codefresh/sandbox/deno:alpine
     commands:
       - |-
         deno eval --ext=js "
+        const [apiKey, pipelineName, runtime] = Deno.args;
+        console.log('🚀  Running pipeline “' + pipelineName + '” on “' + (runtime ? runtime : '[pipeline settings]') +'”');
         const resp = await fetch(
           new URL(
-            encodeURIComponent('${{CF_PIPELINE_NAME}}'),
+            encodeURIComponent(pipelineName),
             'https://g.codefresh.io/api/pipelines/run/',
           ),
           {
             method: 'POST',
-            headers: { 'Authorization': '${{CF_API_KEY}}' }
+            headers: {
+              'Authorization': apiKey,
+              'Content-Type': 'application/json',
+            },
+            body: runtime
+              ? JSON.stringify({
+                userMachineConfig: { runtimeName: runtime },
+                variables: { RUNTIME: runtime },
+              })
+              : null,
           },
         );
         console.log(await resp.text());
         if (!resp.ok) {
           Deno.exit(1);
         }
-        "
+        " $CF_API_KEY $CF_PIPELINE_NAME $RUNTIME
