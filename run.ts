@@ -52,8 +52,8 @@ const getRandomRuntime = (): string | undefined => {
 
 const runPipeline = async (pipeline: string, runCount: number): Promise<{ success: number, failure: number }> => {
   console.info(`🚀 [${new Date().toISOString()}] Starting ${runCount} executions of "${pipeline}"`);
-  const runtime = getRandomRuntime();
   const executions = new Array(runCount).fill(0).map(() => {
+    const runtime = getRandomRuntime();
     return new Deno.Command(`codefresh`, {
       args: [
         'run',
